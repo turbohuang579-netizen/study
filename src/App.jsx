@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
 import bg from './assets/IMG_0552.JPG'
+import Dashboard from './Dashboard'
 
 const STORAGE_KEY = 'learning_tracker_v1'
 
 function App() {
+  // =========================
+  // 📊 页面切换（新增）
+  // =========================
+  const [showDashboard, setShowDashboard] = useState(false)
+
   // =========================
   // 💾 初始化（支持恢复）
   // =========================
@@ -18,7 +24,7 @@ function App() {
             color: '#3B82F6',
             time: 0,
             done: false,
-            sessions: [] // 🆕 用于未来统计图
+            sessions: []
           },
           {
             name: '韩语',
@@ -50,18 +56,16 @@ function App() {
   const intervalRef = useRef(null)
 
   // =========================
-  // 💾 自动保存（新增）
+  // 💾 自动保存
   // =========================
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
   }, [tasks])
 
   // =========================
-  // ⏱ 计时（保留原逻辑 + 增强记录）
+  // ⏱ 计时（保留 + 记录session）
   // =========================
   const toggleTimer = (index) => {
-    const now = Date.now()
-
     // stop
     if (activeIndex === index) {
       clearInterval(intervalRef.current)
@@ -69,7 +73,6 @@ function App() {
       setTasks(prev => {
         const copy = [...prev]
 
-        // 🆕 记录一次 session（用于未来折线图）
         copy[index].sessions.push({
           date: new Date().toISOString().slice(0, 10),
           duration: copy[index].time
@@ -96,7 +99,7 @@ function App() {
   }
 
   // =========================
-  // ➕ 新增任务（保留）
+  // ➕ 新增任务
   // =========================
   const addTask = () => {
     setTasks([
@@ -112,7 +115,7 @@ function App() {
   }
 
   // =========================
-  // ✔ 完成（保留）
+  // ✔ 完成
   // =========================
   const toggleDone = (index) => {
     const copy = [...tasks]
@@ -121,7 +124,7 @@ function App() {
   }
 
   // =========================
-  // ✏️ 编辑（保留）
+  // ✏️ 编辑
   // =========================
   const updateName = (index, value) => {
     const copy = [...tasks]
@@ -129,9 +132,6 @@ function App() {
     setTasks(copy)
   }
 
-  // =========================
-  // 📊 总时间（新增统计基础）
-  // =========================
   const totalTime = tasks.reduce((sum, t) => sum + t.time, 0)
 
   const formatTime = (sec) => {
@@ -140,6 +140,21 @@ function App() {
     return `${m}m ${s}s`
   }
 
+  // =========================
+  // 📊 Dashboard模式（直接切页面）
+  // =========================
+  if (showDashboard) {
+    return (
+      <Dashboard
+        tasks={tasks}
+        onBack={() => setShowDashboard(false)}
+      />
+    )
+  }
+
+  // =========================
+  // 🏠 主页面
+  // =========================
   return (
     <div style={{
       minHeight: '100vh',
@@ -152,7 +167,6 @@ function App() {
       padding: '40px'
     }}>
 
-      {/* 🧊 毛玻璃（保持你喜欢的风格） */}
       <div style={{
         width: '460px',
         padding: '24px',
@@ -173,8 +187,25 @@ function App() {
           总时间：{formatTime(totalTime)}
         </p>
 
+        {/* 📊 打开统计按钮 */}
+        <button
+          onClick={() => setShowDashboard(true)}
+          style={{
+            marginTop: 10,
+            width: '100%',
+            padding: 10,
+            borderRadius: 10,
+            border: 'none',
+            cursor: 'pointer',
+            background: 'rgba(255,255,255,0.85)',
+            fontWeight: 600
+          }}
+        >
+          📊 打开统计
+        </button>
+
         {/* ========================= */}
-        {/* 任务列表（完全保留） */}
+        {/* 任务列表 */}
         {/* ========================= */}
         <div style={{
           marginTop: '15px',
@@ -197,9 +228,7 @@ function App() {
               }}
             >
 
-              {/* 左侧 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-
                 <span
                   onClick={() => toggleDone(index)}
                   style={{
@@ -210,7 +239,6 @@ function App() {
                   ●
                 </span>
 
-                {/* hover编辑 */}
                 {editingIndex === index ? (
                   <input
                     value={task.name}
@@ -231,13 +259,9 @@ function App() {
                 )}
               </div>
 
-              {/* 右侧计时 */}
               <div
                 onClick={() => toggleTimer(index)}
-                style={{
-                  cursor: 'pointer',
-                  fontSize: '13px'
-                }}
+                style={{ cursor: 'pointer', fontSize: '13px' }}
               >
                 {formatTime(task.time)}
               </div>
@@ -246,9 +270,6 @@ function App() {
           ))}
         </div>
 
-        {/* ========================= */}
-        {/* 新增任务（保留） */}
-        {/* ========================= */}
         <button
           onClick={addTask}
           style={{
