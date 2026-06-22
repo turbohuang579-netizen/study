@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import bg from './assets/IMG_0552.JPG'
 import Dashboard from './Dashboard'
 
-const STORAGE_KEY = 'learning_tracker_v4'
+const STORAGE_KEY = 'learning_tracker_v5'
 
 function App() {
   const [showDash, setShowDash] = useState(false)
@@ -11,7 +11,7 @@ function App() {
   const intervalRef = useRef(null)
 
   // =========================
-  // 💾 初始化（不丢数据）
+  // 💾 数据初始化（不丢）
   // =========================
   const [tasks, setTasks] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -19,10 +19,10 @@ function App() {
     return saved
       ? JSON.parse(saved)
       : [
-          { name: '日语', color: '#3B82F6', time: 0, done: false, sessions: [] },
-          { name: '韩语', color: '#22C55E', time: 0, done: false, sessions: [] },
-          { name: '阅读', color: '#EAB308', time: 0, done: false, sessions: [] },
-          { name: '健身', color: '#EF4444', time: 0, done: false, sessions: [] }
+          { name: '日语', color: '#3B82F6', done: false, sessions: [] },
+          { name: '韩语', color: '#22C55E', done: false, sessions: [] },
+          { name: '阅读', color: '#EAB308', done: false, sessions: [] },
+          { name: '健身', color: '#EF4444', done: false, sessions: [] }
         ]
   })
 
@@ -34,7 +34,7 @@ function App() {
   }, [tasks])
 
   // =========================
-  // ⏱ STAR / STOP（修复版）
+  // ⏱ STAR / STOP（完整修复）
   // =========================
   const toggleTimer = (index) => {
     const now = Date.now()
@@ -47,11 +47,11 @@ function App() {
         const copy = [...prev]
         const task = copy[index]
 
-        const lastSession = task.sessions[task.sessions.length - 1]
+        const last = task.sessions[task.sessions.length - 1]
 
-        if (lastSession && !lastSession.end) {
-          lastSession.end = now
-          lastSession.duration = Math.floor((now - lastSession.start) / 1000)
+        if (last && !last.end) {
+          last.end = now
+          last.duration = Math.floor((now - last.start) / 1000)
         }
 
         return copy
@@ -89,36 +89,30 @@ function App() {
   const addTask = () => {
     setTasks([
       ...tasks,
-      {
-        name: '新任务',
-        color: '#999',
-        time: 0,
-        done: false,
-        sessions: []
-      }
+      { name: '新任务', color: '#999', done: false, sessions: [] }
     ])
   }
 
   // =========================
-  // ✏️ 修改名字（hover编辑）
+  // ✏️ 修改名字
   // =========================
-  const updateName = (index, value) => {
+  const updateName = (i, value) => {
     const copy = [...tasks]
-    copy[index].name = value
+    copy[i].name = value
     setTasks(copy)
   }
 
   // =========================
-  // ✔ 完成任务
+  // ✔ 完成
   // =========================
-  const toggleDone = (index) => {
+  const toggleDone = (i) => {
     const copy = [...tasks]
-    copy[index].done = !copy[index].done
+    copy[i].done = !copy[i].done
     setTasks(copy)
   }
 
   // =========================
-  // ⏱ 总时间计算（sessions）
+  // ⏱ 时间统计（sessions）
   // =========================
   const formatTime = (task) => {
     const total = task.sessions.reduce((sum, s) => sum + (s.duration || 0), 0)
@@ -128,7 +122,7 @@ function App() {
   }
 
   // =========================
-  // 📊 进入统计页
+  // 📊 Dashboard
   // =========================
   if (showDash) {
     return <Dashboard tasks={tasks} onBack={() => setShowDash(false)} />
@@ -145,9 +139,8 @@ function App() {
       alignItems: 'center'
     }}>
 
-      {/* 🧊 毛玻璃主卡片（完全保留你的风格） */}
       <div style={{
-        width: 460,
+        width: 480,
         padding: 24,
         borderRadius: 20,
         background: 'rgba(255,255,255,0.06)',
@@ -157,47 +150,53 @@ function App() {
         border: '1px solid rgba(255,255,255,0.15)'
       }}>
 
-        {/* 📊 统计入口 */}
-        <button onClick={() => setShowDash(true)}>
+        {/* 📊 入口 */}
+        <button
+          onClick={() => setShowDash(true)}
+          style={{ marginBottom: 12 }}
+        >
           📊 详情 / 统计
         </button>
 
         {/* =========================
-            任务列表（UI完整保留）
+            TASK LIST（GRID修复居中）
         ========================= */}
         {tasks.map((task, index) => (
           <div
             key={index}
             style={{
-              display: 'flex',
+              display: 'grid',
+              gridTemplateColumns: '40px 1fr 1fr auto',
               alignItems: 'center',
-              justifyContent: 'space-between',
               padding: 12,
-              borderRadius: 12,
-              background: 'rgba(255,255,255,0.08)',
               marginTop: 10,
-              opacity: task.done ? 0.5 : 1,
-              textDecoration: task.done ? 'line-through' : 'none'
+              borderRadius: 12,
+              background: 'rgba(255,255,255,0.08)'
             }}
           >
 
-            {/* ✔ 左：完成状态 */}
+            {/* ✔ 左：完成 */}
             <span
               onClick={() => toggleDone(index)}
               style={{
                 color: task.color,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                fontSize: 18
               }}
             >
               ●
             </span>
 
-            {/* ⏱ 中：时间（居中） */}
-            <span style={{ flex: 1, textAlign: 'center' }}>
+            {/* ⏱ 中：时间（绝对居中列） */}
+            <span style={{
+              textAlign: 'center',
+              justifySelf: 'center',
+              fontWeight: '500'
+            }}>
               {formatTime(task)}
             </span>
 
-            {/* ✏️ hover编辑 */}
+            {/* ✏️ 名字 */}
             {editingIndex === index ? (
               <input
                 value={task.name}
@@ -208,8 +207,8 @@ function App() {
                   background: 'transparent',
                   border: 'none',
                   color: '#fff',
-                  textAlign: 'center',
-                  outline: 'none'
+                  outline: 'none',
+                  textAlign: 'center'
                 }}
               />
             ) : (
@@ -218,9 +217,20 @@ function App() {
               </span>
             )}
 
-            {/* ⭐ star / stop */}
-            <button onClick={() => toggleTimer(index)}>
-              {activeIndex === index ? 'stop' : 'star'}
+            {/* ⭐ STAR / STOP（终于明显了） */}
+            <button
+              onClick={() => toggleTimer(index)}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeIndex === index ? '#ef4444' : '#22c55e',
+                color: '#fff',
+                fontWeight: 'bold'
+              }}
+            >
+              {activeIndex === index ? 'STOP' : 'STAR'}
             </button>
 
           </div>
@@ -234,7 +244,8 @@ function App() {
             width: '100%',
             padding: 10,
             borderRadius: 10,
-            border: 'none'
+            border: 'none',
+            cursor: 'pointer'
           }}
         >
           + 新增任务
