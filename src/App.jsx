@@ -1,28 +1,88 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import bg from './assets/IMG_0552.JPG'
 
+const STORAGE_KEY = 'learning_tracker_v1'
+
 function App() {
-  const [tasks, setTasks] = useState([
-    { name: '日语', color: '#3B82F6', time: 0, done: false },
-    { name: '韩语', color: '#22C55E', time: 0, done: false },
-    { name: '阅读', color: '#EAB308', time: 0, done: false },
-    { name: '健身', color: '#EF4444', time: 0, done: false },
-  ])
+  // =========================
+  // 💾 初始化（支持恢复）
+  // =========================
+  const [tasks, setTasks] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY)
+
+    return saved
+      ? JSON.parse(saved)
+      : [
+          {
+            name: '日语',
+            color: '#3B82F6',
+            time: 0,
+            done: false,
+            sessions: [] // 🆕 用于未来统计图
+          },
+          {
+            name: '韩语',
+            color: '#22C55E',
+            time: 0,
+            done: false,
+            sessions: []
+          },
+          {
+            name: '阅读',
+            color: '#EAB308',
+            time: 0,
+            done: false,
+            sessions: []
+          },
+          {
+            name: '健身',
+            color: '#EF4444',
+            time: 0,
+            done: false,
+            sessions: []
+          },
+        ]
+  })
 
   const [activeIndex, setActiveIndex] = useState(null)
   const [editingIndex, setEditingIndex] = useState(null)
-  const [viewMode, setViewMode] = useState('day')
 
   const intervalRef = useRef(null)
 
-  // 计时
+  // =========================
+  // 💾 自动保存（新增）
+  // =========================
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
+  }, [tasks])
+
+  // =========================
+  // ⏱ 计时（保留原逻辑 + 增强记录）
+  // =========================
   const toggleTimer = (index) => {
+    const now = Date.now()
+
+    // stop
     if (activeIndex === index) {
       clearInterval(intervalRef.current)
+
+      setTasks(prev => {
+        const copy = [...prev]
+
+        // 🆕 记录一次 session（用于未来折线图）
+        copy[index].sessions.push({
+          date: new Date().toISOString().slice(0, 10),
+          duration: copy[index].time
+        })
+
+        return copy
+      })
+
       setActiveIndex(null)
       return
     }
 
+    // start
     clearInterval(intervalRef.current)
     setActiveIndex(index)
 
@@ -35,29 +95,43 @@ function App() {
     }, 1000)
   }
 
-  // 新增任务
+  // =========================
+  // ➕ 新增任务（保留）
+  // =========================
   const addTask = () => {
     setTasks([
       ...tasks,
-      { name: '新任务', color: '#999', time: 0, done: false }
+      {
+        name: '新任务',
+        color: '#999',
+        time: 0,
+        done: false,
+        sessions: []
+      }
     ])
   }
 
-  // 切换完成状态
+  // =========================
+  // ✔ 完成（保留）
+  // =========================
   const toggleDone = (index) => {
     const copy = [...tasks]
     copy[index].done = !copy[index].done
     setTasks(copy)
   }
 
-  // 编辑任务名
+  // =========================
+  // ✏️ 编辑（保留）
+  // =========================
   const updateName = (index, value) => {
     const copy = [...tasks]
     copy[index].name = value
     setTasks(copy)
   }
 
-  // 总时间
+  // =========================
+  // 📊 总时间（新增统计基础）
+  // =========================
   const totalTime = tasks.reduce((sum, t) => sum + t.time, 0)
 
   const formatTime = (sec) => {
@@ -78,47 +152,36 @@ function App() {
       padding: '40px'
     }}>
 
+      {/* 🧊 毛玻璃（保持你喜欢的风格） */}
       <div style={{
-        width: '450px',
+        width: '460px',
         padding: '24px',
         borderRadius: '20px',
-        background: 'rgba(255,255,255,0.15)',
-        backdropFilter: 'blur(18px)',
-        WebkitBackdropFilter: 'blur(18px)',
-        border: '1px solid rgba(255,255,255,0.3)',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+        background: 'rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255,255,255,0.15)',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
         color: '#fff'
       }}>
 
-        {/* 标题 */}
-        <h1>인절미</h1>
+        <h1 style={{ fontSize: '22px', fontWeight: '700' }}>
+          인절미
+        </h1>
 
-        {/* 统计 + 切换 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <p>总：{formatTime(totalTime)}</p>
+        <p style={{ opacity: 0.8 }}>
+          总时间：{formatTime(totalTime)}
+        </p>
 
-          <div>
-            {['day', 'week', 'month'].map(v => (
-              <button
-                key={v}
-                onClick={() => setViewMode(v)}
-                style={{
-                  marginLeft: '6px',
-                  padding: '4px 8px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: viewMode === v ? '#fff' : 'rgba(255,255,255,0.3)'
-                }}
-              >
-                {v}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 任务列表 */}
-        <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* ========================= */}
+        {/* 任务列表（完全保留） */}
+        {/* ========================= */}
+        <div style={{
+          marginTop: '15px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px'
+        }}>
           {tasks.map((task, index) => (
             <div
               key={index}
@@ -128,7 +191,7 @@ function App() {
                 alignItems: 'center',
                 padding: '12px',
                 borderRadius: '14px',
-                background: 'rgba(255,255,255,0.2)',
+                background: 'rgba(255,255,255,0.1)',
                 opacity: task.done ? 0.5 : 1,
                 textDecoration: task.done ? 'line-through' : 'none'
               }}
@@ -138,8 +201,11 @@ function App() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 
                 <span
-                  style={{ color: task.color, cursor: 'pointer' }}
                   onClick={() => toggleDone(index)}
+                  style={{
+                    color: task.color,
+                    cursor: 'pointer'
+                  }}
                 >
                   ●
                 </span>
@@ -159,26 +225,30 @@ function App() {
                     }}
                   />
                 ) : (
-                  <span
-                    onMouseEnter={() => setEditingIndex(index)}
-                  >
+                  <span onMouseEnter={() => setEditingIndex(index)}>
                     {task.name}
                   </span>
                 )}
               </div>
 
-              {/* 右侧 */}
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <span onClick={() => toggleTimer(index)} style={{ cursor: 'pointer' }}>
-                  {formatTime(task.time)}
-                </span>
+              {/* 右侧计时 */}
+              <div
+                onClick={() => toggleTimer(index)}
+                style={{
+                  cursor: 'pointer',
+                  fontSize: '13px'
+                }}
+              >
+                {formatTime(task.time)}
               </div>
 
             </div>
           ))}
         </div>
 
-        {/* 按钮 */}
+        {/* ========================= */}
+        {/* 新增任务（保留） */}
+        {/* ========================= */}
         <button
           onClick={addTask}
           style={{
@@ -188,8 +258,9 @@ function App() {
             borderRadius: '12px',
             border: 'none',
             cursor: 'pointer',
-            background: '#fff',
-            color: '#000'
+            background: 'rgba(255,255,255,0.9)',
+            color: '#000',
+            fontWeight: '600'
           }}
         >
           + 新增任务
